@@ -167,16 +167,17 @@ app.get('/payment/stripe/success', checkAuthenticated, async (req, res) => {
       return res.redirect('/checkout');
     }
 
-    const session = await stripe.retrieveSession(sessionId);
-    if (session.payment_status !== 'paid') {
-      req.flash('error', 'Stripe payment not completed');
-      return res.redirect('/checkout');
-    }
+      const session = await stripe.retrieveSession(sessionId);
+      if (session.payment_status !== 'paid') {
+        req.flash('error', 'Stripe payment not completed');
+        return res.redirect('/checkout');
+      }
 
-    const userId = req.session.user.id;
-    const cart = req.session.paymentCart;
-    const checkoutData = req.session.checkoutData || {};
-    const total = req.session.paymentAmount;
+      const paymentReference = session.payment_intent || session.id;
+      const userId = req.session.user.id;
+      const cart = req.session.paymentCart;
+      const checkoutData = req.session.checkoutData || {};
+      const total = req.session.paymentAmount;
 
     const items = cart.map(i => ({
       product_id: i.id,
