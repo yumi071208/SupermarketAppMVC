@@ -47,7 +47,8 @@ app.use((req, res, next) => {
 // User middleware
 app.use((req, res, next) => {
     if (req.session.user) {
-        const userId = req.session.user.id;
+      const paymentReference = session.payment_intent || session.id;
+      const userId = req.session.user.id;
         Product.getCart(userId, (err, cart) => {
             req.session.user.cartCount = cart ? cart.length : 0;
             res.locals.user = req.session.user;
@@ -196,14 +197,27 @@ app.get('/payment/stripe/success', checkAuthenticated, async (req, res) => {
           return res.redirect('/checkout');
         }
 
-        Product.clearCart(userId, () => {
-          req.session.paymentCart = null;
-          req.session.paymentAmount = null;
-          req.session.checkoutData = null;
-          req.session.voucher = null;
-          req.session.stripeSessionId = null;
-          res.redirect('/invoice/' + dbOrderId);
-        });
+        Product.updateOrderPayment(
+          dbOrderId,
+          'PAID',
+          'STRIPE',
+          paymentReference,
+          (updateErr) => {
+            if (updateErr) {
+              req.flash('error', 'Payment update failed');
+              return res.redirect('/checkout');
+            }
+
+            Product.clearCart(userId, () => {
+              req.session.paymentCart = null;
+              req.session.paymentAmount = null;
+              req.session.checkoutData = null;
+              req.session.voucher = null;
+              req.session.stripeSessionId = null;
+              res.redirect('/invoice/' + dbOrderId);
+            });
+          }
+        );
       }
     );
   } catch (err) {
@@ -229,6 +243,7 @@ app.get('/payment/paypal/success', checkAuthenticated, async (req, res) => {
         
         const capture = await paypal.captureOrder(orderId);
         if (capture.status === "COMPLETED") {
+            const paymentReference = capture.id || orderId;
             const userId = req.session.user.id;
             const cart = req.session.paymentCart;
             const checkoutData = req.session.checkoutData || {};
@@ -253,14 +268,27 @@ app.get('/payment/paypal/success', checkAuthenticated, async (req, res) => {
                         return res.redirect('/checkout');
                     }
                     
-                    Product.clearCart(userId, () => {
-                        req.session.paymentCart = null;
-                        req.session.paymentAmount = null;
-                        req.session.checkoutData = null;
-                        req.session.voucher = null;
-                        req.session.paypalOrderId = null;
-                        res.redirect('/invoice/' + dbOrderId);
-                    });
+                    Product.updateOrderPayment(
+                        dbOrderId,
+                        'PAID',
+                        'PAYPAL',
+                        paymentReference,
+                        (updateErr) => {
+                            if (updateErr) {
+                                req.flash('error', 'Payment update failed');
+                                return res.redirect('/checkout');
+                            }
+
+                            Product.clearCart(userId, () => {
+                                req.session.paymentCart = null;
+                                req.session.paymentAmount = null;
+                                req.session.checkoutData = null;
+                                req.session.voucher = null;
+                                req.session.paypalOrderId = null;
+                                res.redirect('/invoice/' + dbOrderId);
+                            });
+                        }
+                    );
                 }
             );
         }
@@ -477,19 +505,33 @@ app.get('/payment/nets/success', checkAuthenticated, async (req, res) => {
           console.log('✅ Order created:', dbOrderId);
           
           // 清空购物车
-          Product.clearCart(userId, () => {
-            // 清理session
-            req.session.paymentCart = null;
-            req.session.paymentAmount = null;
-            req.session.checkoutData = null;
-            req.session.voucher = null;
-            req.session.netsPaymentId = null;
-            req.session.netsOrderId = null;
-            req.session.netsPaymentData = null;
-            
-            console.log('✅ Redirecting to invoice:', dbOrderId);
-            res.redirect('/invoice/' + dbOrderId);
-          });
+                    Product.updateOrderPayment(
+            dbOrderId,
+            'PAID',
+            'NETS_QR',
+            paymentId,
+            (updateErr) => {
+              if (updateErr) {
+                console.error('??? Payment update failed:', updateErr);
+                return res.redirect('/payment/nets/failed?error=Payment+update+failed');
+              }
+
+              // ???????????????
+              Product.clearCart(userId, () => {
+                // ??????session
+                req.session.paymentCart = null;
+                req.session.paymentAmount = null;
+                req.session.checkoutData = null;
+                req.session.voucher = null;
+                req.session.netsPaymentId = null;
+                req.session.netsOrderId = null;
+                req.session.netsPaymentData = null;
+                
+                console.log('??? Redirecting to invoice:', dbOrderId);
+                res.redirect('/invoice/' + dbOrderId);
+              });
+            }
+          );
         }
       );
     } else {

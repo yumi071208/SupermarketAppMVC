@@ -84,22 +84,23 @@
               </div>
 
             <label class="payment-option d-flex align-items-center gap-2">
-              <input type="radio" name="payment_method" value="PAYPAL" required>
+              <input type="radio" name="payment_method" value="PAYPAL" form="checkout-form" required>
               <img src="/images/paypal-logo.png" style="height:20px;" alt="PayPal">
               <span>PayPal (Sandbox)</span>
             </label>
 
             <label class="payment-option d-flex align-items-center gap-2">
-              <input type="radio" name="payment_method" value="NETS_QR">
+              <input type="radio" name="payment_method" value="NETS_QR" form="checkout-form">
               <img src="/images/nets-logo.png" style="height:20px;" alt="NETS">
               <span>NETS QR (Scan to Pay)</span>
             </label>
 
             <label class="payment-option d-flex align-items-center gap-2">
-              <input type="radio" name="payment_method" value="STRIPE">
+              <input type="radio" name="payment_method" value="STRIPE" form="checkout-form">
               <img src="/images/stripe-logo.png" style="height:20px;" alt="Stripe">
               <span>Stripe (Card)</span>
             </label>
+            <input type="hidden" name="payment_method_fallback" id="payment-method-fallback" form="checkout-form" value="">
             </div>
           </div>
 
@@ -147,7 +148,7 @@
               </div>
 
               <div class="d-grid mt-4">
-                <button class="pastel-btn btn-lg" id="proceed-btn" disabled>Proceed to Payment</button>
+                <button type="submit" class="pastel-btn btn-lg" id="proceed-btn" disabled>Proceed to Payment</button>
                 <div class="form-text text-muted mt-2" id="payment-helper" aria-live="polite">
                   Select a payment method to continue.
                 </div>
@@ -175,11 +176,17 @@
       const addressError = document.getElementById("address-error");
       const deliveryHelper = document.getElementById("delivery-helper");
       const pickupHelper = document.getElementById("pickup-helper");
+      const paymentFallback = document.getElementById("payment-method-fallback");
+      const paymentOptions = Array.from(form.querySelectorAll(".payment-option"));
 
       const updateProceedState = () => {
         const isPickup = deliveryInput.value === "pickup";
         const addressValid = isPickup ? true : addressInput.value.trim().length > 0;
         const paymentSelected = paymentInputs.some((input) => input.checked);
+        if (paymentFallback) {
+          const selected = paymentInputs.find((input) => input.checked);
+          paymentFallback.value = selected ? selected.value : "";
+        }
 
         addressInput.setAttribute("aria-invalid", String(!addressValid));
         addressError.classList.toggle("d-none", addressValid);
@@ -213,17 +220,31 @@
           }
           if (stored.payment) {
             const target = paymentInputs.find((input) => input.value === stored.payment);
-            if (target) target.checked = true;
-          }
-        } catch (err) {
-          localStorage.removeItem("jm_checkout");
+          if (target) target.checked = true;
         }
+        if (paymentFallback) {
+          paymentFallback.value = stored.payment || "";
+        }
+      } catch (err) {
+        localStorage.removeItem("jm_checkout");
+      }
       };
 
       paymentInputs.forEach((input) => {
         input.addEventListener("change", () => {
           updateProceedState();
           saveState();
+        });
+      });
+
+      paymentOptions.forEach((option) => {
+        option.addEventListener("click", () => {
+          const input = option.querySelector("input[name='payment_method']");
+          if (input && !input.disabled) {
+            input.checked = true;
+            updateProceedState();
+            saveState();
+          }
         });
       });
 
@@ -238,8 +259,12 @@
       });
 
       form.addEventListener("submit", (event) => {
+        const selected = paymentInputs.find((input) => input.checked);
+        if (paymentFallback) {
+          paymentFallback.value = selected ? selected.value : "";
+        }
         updateProceedState();
-        if (proceedBtn.disabled) {
+        if (proceedBtn.disabled || !selected) {
           event.preventDefault();
         } else {
           localStorage.removeItem("jm_checkout");

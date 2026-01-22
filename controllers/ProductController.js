@@ -99,7 +99,7 @@ const ProductController = {
     const qtyRequested = parseInt(req.body.quantity);
 
     Product.getCart(req.session.user.id, (err, cart) => {
-      const item = cart.find(i => i.cartItemId == cartItemId);
+      const item = cart.find(i => i.cart_id == cartItemId);
       if (!item) return res.redirect("/cart");
 
       const stock = parseInt(item.quantity_available);
@@ -194,7 +194,16 @@ const ProductController = {
 
   processCheckout: function (req, res) {
     const userId = req.session.user.id;
-    const { delivery_method, address, payment_method } = req.body;
+    const { delivery_method, address } = req.body;
+    const paymentRaw = req.body.payment_method || req.body.payment_method_fallback || "";
+    const paymentNormalized = paymentRaw.toString().trim().toUpperCase();
+    const paymentMap = {
+      PAYPAL: "PAYPAL",
+      NETS: "NETS_QR",
+      NETS_QR: "NETS_QR",
+      STRIPE: "STRIPE"
+    };
+    const payment_method = paymentMap[paymentNormalized] || "";
 
     if (!delivery_method) {
       req.session.message = "Please select a delivery method.";
@@ -243,6 +252,8 @@ const ProductController = {
         return res.redirect("/payment/stripe/redirect");
       }
 
+      req.session.message = "Unsupported payment method.";
+      req.flash('error', 'Unsupported payment method.');
       res.redirect("/checkout");
     });
   },
