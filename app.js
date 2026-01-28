@@ -18,6 +18,11 @@ const paypal = require('./services/paypal');
 const NETS = require('./services/nets-api');
 const stripe = require('./services/stripe');
 
+const NETS_API_KEY = process.env.API_KEY;
+const NETS_PROJECT_ID = process.env.PROJECT_ID;
+const BASE_URL =
+  process.env.NETS_BASE_URL || 'https://sandbox.nets.openapipaas.com';
+
 // ===== Multer =====
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'public/images'),
