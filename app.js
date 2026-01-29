@@ -17,15 +17,12 @@ const Product = require('./models/Product');
 const paypal = require('./services/paypal');
 const NETS = require('./services/nets-api');
 const stripe = require('./services/stripe');
-<<<<<<< HEAD
-=======
 const airwallex = require('./services/airwallex');
 
 const NETS_API_KEY = process.env.API_KEY;
 const NETS_PROJECT_ID = process.env.PROJECT_ID;
 const BASE_URL =
   process.env.NETS_BASE_URL || 'https://sandbox.nets.openapipaas.com';
->>>>>>> feature/payment-methods
 
 // ===== Multer =====
 const storage = multer.diskStorage({
@@ -56,12 +53,7 @@ app.use((req, res, next) => {
 // User middleware
 app.use((req, res, next) => {
     if (req.session.user) {
-<<<<<<< HEAD
         const userId = req.session.user.id;
-=======
-      const paymentReference = session.payment_intent || session.id;
-      const userId = req.session.user.id;
->>>>>>> feature/payment-methods
         Product.getCart(userId, (err, cart) => {
             req.session.user.cartCount = cart ? cart.length : 0;
             res.locals.user = req.session.user;
@@ -184,30 +176,17 @@ app.get('/payment/stripe/success', checkAuthenticated, async (req, res) => {
       return res.redirect('/checkout');
     }
 
-<<<<<<< HEAD
     const session = await stripe.retrieveSession(sessionId);
     if (session.payment_status !== 'paid') {
       req.flash('error', 'Stripe payment not completed');
       return res.redirect('/checkout');
     }
 
+    const paymentReference = session.payment_intent || session.id;
     const userId = req.session.user.id;
     const cart = req.session.paymentCart;
     const checkoutData = req.session.checkoutData || {};
     const total = req.session.paymentAmount;
-=======
-      const session = await stripe.retrieveSession(sessionId);
-      if (session.payment_status !== 'paid') {
-        req.flash('error', 'Stripe payment not completed');
-        return res.redirect('/checkout');
-      }
-
-      const paymentReference = session.payment_intent || session.id;
-      const userId = req.session.user.id;
-      const cart = req.session.paymentCart;
-      const checkoutData = req.session.checkoutData || {};
-      const total = req.session.paymentAmount;
->>>>>>> feature/payment-methods
 
     const items = cart.map(i => ({
       product_id: i.id,
@@ -228,16 +207,6 @@ app.get('/payment/stripe/success', checkAuthenticated, async (req, res) => {
           return res.redirect('/checkout');
         }
 
-<<<<<<< HEAD
-        Product.clearCart(userId, () => {
-          req.session.paymentCart = null;
-          req.session.paymentAmount = null;
-          req.session.checkoutData = null;
-          req.session.voucher = null;
-          req.session.stripeSessionId = null;
-          res.redirect('/invoice/' + dbOrderId);
-        });
-=======
         Product.updateOrderPayment(
           dbOrderId,
           'PAID',
@@ -259,7 +228,6 @@ app.get('/payment/stripe/success', checkAuthenticated, async (req, res) => {
             });
           }
         );
->>>>>>> feature/payment-methods
       }
     );
   } catch (err) {
@@ -274,8 +242,6 @@ app.get('/payment/stripe/cancel', checkAuthenticated, (req, res) => {
   res.redirect('/checkout');
 });
 
-<<<<<<< HEAD
-=======
 // ===============================
 // AIRWALLEX ROUTES
 // ===============================
@@ -399,8 +365,6 @@ app.get('/payment/airwallex/cancel', checkAuthenticated, (req, res) => {
   req.flash('error', 'Airwallex payment cancelled');
   res.redirect('/checkout');
 });
-
->>>>>>> feature/payment-methods
 app.get('/payment/paypal/success', checkAuthenticated, async (req, res) => {
     try {
         const { token } = req.query;
@@ -412,10 +376,7 @@ app.get('/payment/paypal/success', checkAuthenticated, async (req, res) => {
         
         const capture = await paypal.captureOrder(orderId);
         if (capture.status === "COMPLETED") {
-<<<<<<< HEAD
-=======
             const paymentReference = capture.id || orderId;
->>>>>>> feature/payment-methods
             const userId = req.session.user.id;
             const cart = req.session.paymentCart;
             const checkoutData = req.session.checkoutData || {};
@@ -440,16 +401,6 @@ app.get('/payment/paypal/success', checkAuthenticated, async (req, res) => {
                         return res.redirect('/checkout');
                     }
                     
-<<<<<<< HEAD
-                    Product.clearCart(userId, () => {
-                        req.session.paymentCart = null;
-                        req.session.paymentAmount = null;
-                        req.session.checkoutData = null;
-                        req.session.voucher = null;
-                        req.session.paypalOrderId = null;
-                        res.redirect('/invoice/' + dbOrderId);
-                    });
-=======
                     Product.updateOrderPayment(
                         dbOrderId,
                         'PAID',
@@ -471,7 +422,6 @@ app.get('/payment/paypal/success', checkAuthenticated, async (req, res) => {
                             });
                         }
                     );
->>>>>>> feature/payment-methods
                 }
             );
         }
@@ -688,21 +638,6 @@ app.get('/payment/nets/success', checkAuthenticated, async (req, res) => {
           console.log('✅ Order created:', dbOrderId);
           
           // 清空购物车
-<<<<<<< HEAD
-          Product.clearCart(userId, () => {
-            // 清理session
-            req.session.paymentCart = null;
-            req.session.paymentAmount = null;
-            req.session.checkoutData = null;
-            req.session.voucher = null;
-            req.session.netsPaymentId = null;
-            req.session.netsOrderId = null;
-            req.session.netsPaymentData = null;
-            
-            console.log('✅ Redirecting to invoice:', dbOrderId);
-            res.redirect('/invoice/' + dbOrderId);
-          });
-=======
                     Product.updateOrderPayment(
             dbOrderId,
             'PAID',
@@ -730,7 +665,6 @@ app.get('/payment/nets/success', checkAuthenticated, async (req, res) => {
               });
             }
           );
->>>>>>> feature/payment-methods
         }
       );
     } else {

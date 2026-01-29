@@ -324,8 +324,6 @@ body.storefront {
   box-shadow: none;
 }
 
-<<<<<<< HEAD
-=======
 /* -------- OTP (Mock 2FA) -------- */
 .otp-inputs {
   display: flex;
@@ -353,7 +351,6 @@ body.storefront {
   outline: none;
 }
 
->>>>>>> feature/payment-methods
 /* -------- STORE FRONT -------- */
 .store-shell {
   background: #ffffff;

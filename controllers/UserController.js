@@ -63,22 +63,12 @@ const UserController = {
       }
 
       if (user) {
-<<<<<<< HEAD
-        req.session.user = user;
-
-        // Redirect based on role
-        if (user.role === 'admin') {
-          return res.redirect('/admin');   // FIXED
-        }
-        return res.redirect('/shopping');
-=======
         const demoCode = String(Math.floor(100000 + Math.random() * 900000));
         req.session.pendingUser = user;
         req.session.pending2faEmailCode = demoCode;
         req.session.pending2faPhoneCode = null;
         req.session.pending2faEmailVerified = false;
         return res.redirect('/login/verify-email');
->>>>>>> feature/payment-methods
       }
 
       req.flash('error', 'Invalid email or password.');
